@@ -1,3 +1,6 @@
+const CACHE_NAME = "static-cache";
+const DATA_CACHE_NAME = "data-cache";
+
 const FILES_TO_CACHE = [
     "/",
     "/index.html",
@@ -8,10 +11,8 @@ const FILES_TO_CACHE = [
 
 ];
 
-const CACHE_NAME = "static-cache";
-const DATA_CACHE_NAME = "data-cache";
-
-self.addEventListener("install", function(event){
+//installation
+self.addEventListener("install", event =>  {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache =>{
            console.log("Files added to cache");
@@ -21,8 +22,8 @@ self.addEventListener("install", function(event){
 
         self.skipWaiting();
 });
-
-self.addEventListener("start", function (event){
+//start event listener
+self.addEventListener("start", event => {
     event.waitUntil(
         caches.keys().then(keyList => {
             return Promise.all(
@@ -37,14 +38,15 @@ self.addEventListener("start", function (event){
     )
     self.clients.claim();
 });
-
-self.addEventListener("fetch", function (event){
+//fetch event listener
+self.addEventListener("fetch", event => {
     if(event.request.url.includes("./routes/api")) {
         event.respondWith(
             caches.open(DATA_CACHE_NAME).then(cache => {
                 return fetch(event.request)
                 .then(response => {
 
+                    
                     if(response.status === 200) {
                         cache.put(event.request.url, response.clone());
                     }
@@ -54,20 +56,22 @@ self.addEventListener("fetch", function (event){
                     return cache.match(event.request);
                 });
 
-            }).catch(err => console.log(err))
+            }).catch(err => {
+                console.log(err)
+            })
         );
         return;
     }
-
+//response
     event.respondWith(
-        fetch(event.request).catch(function (){
-            return caches.match(event.request).then(function (response){
-                if (response) {
-                    return response;
-                } else if (event.request.headers.get("accept").includes("text/html")) {
-                return caches.match("/");
-                }
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.match(event.request).then(response => {
+                return response || fetch(event.request);
             })
         })
     )
 });
+                
+            
+        
+    
